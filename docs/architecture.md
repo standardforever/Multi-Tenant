@@ -25,6 +25,9 @@ app/
       schemas.py   Pydantic request/response schemas
       router.py    FastAPI APIRouter (the "views")
       services.py  business logic, kept out of route handlers
+    auth/          login/register/refresh/logout + Google OAuth (no models
+                   of its own — operates on users.models.User). See
+                   docs/authentication.md
     organizations/
     memberships/   user <-> organization, carries the role (tenant membership + RBAC)
     projects/

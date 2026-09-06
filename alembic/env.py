@@ -4,17 +4,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+import app.core.model_registry  # noqa: F401  (registers every app's models on Base.metadata)
 from app.common.models import Base
 from app.core.config import get_settings
-
-# Import each app's models so they register on Base.metadata before autogenerate runs.
-from app.apps.audit import models as audit_models  # noqa: F401
-from app.apps.comments import models as comments_models  # noqa: F401
-from app.apps.memberships import models as memberships_models  # noqa: F401
-from app.apps.organizations import models as organizations_models  # noqa: F401
-from app.apps.projects import models as projects_models  # noqa: F401
-from app.apps.tasks import models as tasks_models  # noqa: F401
-from app.apps.users import models as users_models  # noqa: F401
 
 config = context.config
 

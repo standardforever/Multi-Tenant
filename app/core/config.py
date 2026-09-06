@@ -13,6 +13,17 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
 
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 30
+    oauth_state_ttl_seconds: int = 300
+
+    frontend_url: str = "http://localhost:3000"
+
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
+
 
 @lru_cache
 def get_settings() -> Settings:
