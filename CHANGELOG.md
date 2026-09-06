@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented here, newest first.
 
+## 2026-09-06 — Organization creation, invites, and multi-org membership
+
+- `POST /organizations` creates an org and atomically makes the caller its
+  owner — no separate "become owner" step. Any user can create any number
+  of organizations regardless of their role in any other organization.
+- `GET /organizations` lists every org a user belongs to (owned or
+  invited), each with their `my_role` in it.
+- Added `GET/PATCH/DELETE /organizations/current`, scoped by the `X-Org-Id`
+  header per the existing tenant-scoping convention; `PATCH`/`DELETE`
+  require `owner`. Deleting an org cascades to its memberships.
+- Added the `memberships` app's real endpoints:
+  `GET /memberships` (roster), `POST /memberships/invite` (by email, admin+
+  only), `PATCH /memberships/{id}/role`, `DELETE /memberships/{id}`.
+- Guardrails in `app/apps/memberships/services.py`: an actor can't
+  invite/promote anyone to a role higher than their own, can't touch a
+  member ranked above them, duplicate invites are rejected (409), invites
+  target only existing users (404 otherwise — no email delivery yet), and
+  an organization can never be left with zero owners (400 on the last
+  demotion/removal).
+- Fixed a pre-existing test-suite issue: the shared SQLAlchemy engine and
+  Redis client are module-level singletons, but pytest-asyncio hands each
+  test its own event loop — pooled connections from one test broke the
+  next. `tests/conftest.py` now disposes both after every test.
+- Verified end-to-end against the Docker stack (two real users, cross-org
+  scenarios, every guardrail) via curl, then locked into
+  `tests/apps/organizations/test_organizations_flow.py`. Full suite (5
+  tests) passes repeatably; `ruff check` clean.
+- See [docs/organizations.md](docs/organizations.md) for the full design
+  and what's intentionally deferred (pending invites for unregistered
+  emails, self-service "leave org").
+
 ## 2026-09-06 — Authentication, JWTs, Google OAuth, and RBAC permissions
 
 - Added `users` (`User`, `OAuthAccount`) and `memberships` (`Membership`,
