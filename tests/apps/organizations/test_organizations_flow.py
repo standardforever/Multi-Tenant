@@ -40,21 +40,27 @@ async def test_org_creation_invite_and_multi_org_membership(client):
     forbidden_response = await client.get("/organizations/current", headers=_org(invitee, org["id"]))
     assert forbidden_response.status_code == 403
 
-    # Owner invites the second user as a plain member.
+    # Owner invites the second user as a plain member; invitee accepts.
     invite_response = await client.post(
-        "/memberships/invite",
+        "/invitations",
         headers=_org(owner, org["id"]),
         json={"email": invitee["email"], "role": "member"},
     )
     assert invite_response.status_code == 201
-    invitee_membership_id = invite_response.json()["id"]
+    invitation_token = invite_response.json()["token"]
 
     duplicate_invite_response = await client.post(
-        "/memberships/invite",
+        "/invitations",
         headers=_org(owner, org["id"]),
         json={"email": invitee["email"], "role": "member"},
     )
     assert duplicate_invite_response.status_code == 409
+
+    accept_response = await client.post(
+        "/invitations/accept", headers=_auth(invitee), json={"token": invitation_token}
+    )
+    assert accept_response.status_code == 200
+    invitee_membership_id = accept_response.json()["id"]
 
     # The invited user now sees the organization in their own list.
     invitee_orgs = (await client.get("/organizations", headers=_auth(invitee))).json()
@@ -62,7 +68,7 @@ async def test_org_creation_invite_and_multi_org_membership(client):
 
     # A plain member cannot invite others.
     member_invite_response = await client.post(
-        "/memberships/invite",
+        "/invitations",
         headers=_org(invitee, org["id"]),
         json={"email": owner["email"], "role": "member"},
     )

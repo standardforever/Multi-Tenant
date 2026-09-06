@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.apps.memberships import services
 from app.apps.memberships.models import Membership, OrgRole
-from app.apps.memberships.schemas import MembershipInvite, MembershipRead, MembershipRoleUpdate
+from app.apps.memberships.schemas import MembershipRead, MembershipRoleUpdate
 from app.core.database import get_db
 from app.core.permissions import get_current_membership, require_role
 
@@ -30,23 +30,6 @@ async def list_members(
 ) -> list[MembershipRead]:
     members = await services.list_memberships(db, membership.organization_id)
     return [_to_read(member) for member in members]
-
-
-@router.post(
-    "/invite",
-    response_model=MembershipRead,
-    status_code=201,
-    dependencies=[Depends(require_role(OrgRole.ADMIN))],
-)
-async def invite_member(
-    payload: MembershipInvite,
-    membership: Membership = Depends(get_current_membership),
-    db: AsyncSession = Depends(get_db),
-) -> MembershipRead:
-    created = await services.invite_member(
-        db, membership.organization_id, membership, payload.email, payload.role
-    )
-    return _to_read(created)
 
 
 @router.patch(

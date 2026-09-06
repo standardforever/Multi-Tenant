@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
 
+    resend_api_key: str = ""
+    email_from: str = "Multi-Tenant <notifications@notify.processzero.co.uk>"
+    invitation_expire_days: int = 7
+
 
 @lru_cache
 def get_settings() -> Settings:

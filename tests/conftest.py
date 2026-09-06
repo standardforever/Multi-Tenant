@@ -14,6 +14,21 @@ async def client():
 
 
 @pytest.fixture(autouse=True)
+def sent_emails(monkeypatch):
+    """Autouse: no test should ever hit the real Resend API. Stubs out the
+    single call site (app.apps.invitations.services.send_email) with a
+    recorder; tests that care about email content can depend on this
+    fixture by name to inspect what would have been sent."""
+    calls: list[dict] = []
+
+    async def fake_send_email(to: str, subject: str, html: str) -> None:
+        calls.append({"to": to, "subject": subject, "html": html})
+
+    monkeypatch.setattr("app.apps.invitations.services.send_email", fake_send_email)
+    return calls
+
+
+@pytest.fixture(autouse=True)
 async def _reset_pooled_connections():
     """pytest-asyncio gives each test its own event loop, but the SQLAlchemy
     engine and Redis client are module-level singletons whose pools cache

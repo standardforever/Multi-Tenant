@@ -33,27 +33,30 @@
 
 | Method | Path                          | Auth                  | Purpose                              |
 |--------|-------------------------------|------------------------|----------------------------------------|
-| GET    | `/memberships`                | member (`X-Org-Id`)    | List everyone in the current org        |
-| POST   | `/memberships/invite`         | admin+ (`X-Org-Id`)    | Add an *existing* user by email + role  |
-| PATCH  | `/memberships/{id}/role`      | admin+ (`X-Org-Id`)    | Change a member's role                  |
+| GET    | `/memberships`                | member (`X-Org-Id`)    | List everyone already in the current org|
+| PATCH  | `/memberships/{id}/role`      | admin+ (`X-Org-Id`)    | Change an existing member's role        |
 | DELETE | `/memberships/{id}`           | admin+ (`X-Org-Id`)    | Remove a member from the org            |
+
+Getting someone *into* an org in the first place is no longer a
+`memberships` endpoint — see [invitations.md](invitations.md). There used
+to be a `POST /memberships/invite` that created a `Membership` instantly
+for an existing user; it's been replaced entirely by the `Invitation`
+model + accept flow (works for people without an account yet, and doesn't
+silently add someone to an org without them accepting).
 
 Slugs (`organizations.slug`) are auto-generated from the name
 (`_slugify` + a `-2`, `-3`, ... suffix on collision) — not user-supplied, so
 there's no separate validation surface for them yet.
 
-## Invite guardrails
+## Guardrails
 
-Inviting, promoting, or removing members through a shared RBAC surface
-creates a few classic privilege-escalation and lockout footguns. All are
-handled in `app/apps/memberships/services.py`, using the role ranking from
+Promoting or removing members through a shared RBAC surface creates a few
+classic privilege-escalation and lockout footguns. All are handled in
+`app/apps/memberships/services.py` (and mirrored in
+`app/apps/invitations/services.py` for the invite step itself — see
+[invitations.md](invitations.md)), using the role ranking from
 `app/apps/memberships/models.py::ROLE_RANK` (`member < admin < owner`):
 
-- **Invite by email only** — `/memberships/invite` looks up an *existing*
-  `User` by email. If nobody's registered with that email yet, it's a `404`
-  telling the inviter to have them sign up first. There is no
-  pending-invite-for-an-unregistered-email flow (that needs outbound email
-  delivery — intentionally deferred, see below).
 - **Can't invite/promote past your own rank** — an `admin` can invite or
   promote someone up to `admin`, never `owner`; only an `owner` can create
   another `owner`. (`ROLE_RANK[role] > ROLE_RANK[inviter.role]` → `403`.)
@@ -67,15 +70,13 @@ handled in `app/apps/memberships/services.py`, using the role ranking from
   removing the last remaining `owner` is a `400`
   (`_ensure_not_last_owner`). This is what stops an org from becoming
   unmanageable (nobody left with rename/delete/re-invite rights).
-- **Duplicate invites rejected** — inviting someone already in the org is a
-  `409`, not a silent no-op or a second membership row.
+- **Duplicate invites rejected** — a second active invitation (or a direct
+  invite to someone already a member) is a `409`, not a silent no-op or a
+  second row. See [invitations.md](invitations.md) for the invite-specific
+  checks (unregistered emails, expiry, wrong-email acceptance).
 
 ## What's intentionally not built yet
 
-- **Pending invitations for unregistered emails.** Right now you can only
-  invite someone who already has an account. A "real" invite system (invite
-  token + email delivery + accept-on-signup) needs an email-sending
-  integration, which hasn't been set up — noted here rather than half-built.
 - **"Leave organization" self-service.** A member can be removed by an
   admin/owner via `DELETE /memberships/{id}`, but there's no dedicated
   self-service "leave" endpoint yet (would hit the same last-owner guard).

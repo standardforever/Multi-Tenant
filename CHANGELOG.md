@@ -2,6 +2,50 @@
 
 All notable changes to this project are documented here, newest first.
 
+## 2026-09-07 — Real invitations: pending state, email delivery, accept flow
+
+- Added the `invitations` app with a proper `Invitation` model (`pending` /
+  `accepted` / `revoked`, a unique random token, `expires_at`,
+  `last_reminded_at`), replacing the previous `POST /memberships/invite`
+  shortcut entirely. That shortcut only worked for people who already had
+  an account and created a `Membership` instantly with no acceptance step;
+  invitations now work for **anyone's email, account or not**, and only
+  become a real `Membership` once accepted.
+- `POST /invitations`, `GET /invitations`, `PATCH /invitations/{id}`
+  (change a pending invite's role), `POST /invitations/{id}/remind`,
+  `DELETE /invitations/{id}` (revoke) — all admin+, scoped by `X-Org-Id`.
+  Plus two endpoints that aren't org-scoped since the org comes from the
+  token itself: public `GET /invitations/by-token/{token}` (preview before
+  login/signup) and `POST /invitations/accept` (any logged-in user whose
+  email matches the invitation).
+- Same escalation guard as membership role changes (can't invite/promote
+  above your own rank), plus invite-specific ones: duplicate active
+  invites rejected (409), expired invites can't be accepted or reminded,
+  and accepting is rejected if the logged-in user's email doesn't match
+  the invited one.
+- Added `app/core/email.py`: a single `send_email()` calling Resend's HTTP
+  API directly via `httpx` (no SDK). Wired to real Resend credentials in
+  the local `.env` (never committed — `.env.example` ships the key blank).
+  Invite emails are sent via FastAPI `BackgroundTasks`, not inline, so
+  creating an invitation isn't slowed down by an external API call; the
+  background task opens its own DB session rather than reusing the
+  (already-torn-down) request session.
+- Found and fixed a real bug along the way: deleting an organization with
+  a pending invitation raised a `ForeignKeyViolationError`, since
+  `Invitation` has no ORM relationship to cascade through (unlike
+  `Membership`). Fixed with `ondelete="CASCADE"` on the FK at the database
+  level — more robust than an ORM-level cascade regardless of what's
+  loaded in the session.
+- Verified live: the Resend API key and `notify.processzero.co.uk` sender
+  domain were confirmed working end-to-end with a real sent email (outside
+  the automated suite). The automated test suite (`tests/apps/invitations/`)
+  never calls the real API — `tests/conftest.py` now has an autouse
+  fixture that stubs `send_email` for every test.
+- All 11 tests pass repeatably; `ruff check` clean.
+- See [docs/invitations.md](docs/invitations.md) for the full design, and
+  the updated [docs/organizations.md](docs/organizations.md) for what
+  changed in the memberships app.
+
 ## 2026-09-06 — Organization creation, invites, and multi-org membership
 
 - `POST /organizations` creates an org and atomically makes the caller its

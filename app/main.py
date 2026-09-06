@@ -4,6 +4,7 @@ import app.core.model_registry  # noqa: F401  (registers every app's models on B
 from app.apps.audit.router import router as audit_router
 from app.apps.auth.router import router as auth_router
 from app.apps.comments.router import router as comments_router
+from app.apps.invitations.router import router as invitations_router
 from app.apps.memberships.router import router as memberships_router
 from app.apps.organizations.router import router as organizations_router
 from app.apps.projects.router import router as projects_router
@@ -19,6 +20,7 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(organizations_router)
 app.include_router(memberships_router)
+app.include_router(invitations_router)
 app.include_router(projects_router)
 app.include_router(tasks_router)
 app.include_router(comments_router)

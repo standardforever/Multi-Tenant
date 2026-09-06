@@ -29,7 +29,8 @@ app/
                    of its own — operates on users.models.User). See
                    docs/authentication.md
     organizations/ create/list/view/rename/delete orgs. See docs/organizations.md
-    memberships/   invite/list/promote/remove members within an org. See docs/organizations.md
+    memberships/   list/promote/remove existing members. See docs/organizations.md
+    invitations/   invite by email (Resend), remind, revoke, accept. See docs/invitations.md
     projects/
     tasks/
     comments/

@@ -5,6 +5,7 @@ list in alembic/env.py, which needs it for autogenerate."""
 
 from app.apps.audit import models as audit_models  # noqa: F401
 from app.apps.comments import models as comments_models  # noqa: F401
+from app.apps.invitations import models as invitations_models  # noqa: F401
 from app.apps.memberships import models as memberships_models  # noqa: F401
 from app.apps.organizations import models as organizations_models  # noqa: F401
 from app.apps.projects import models as projects_models  # noqa: F401

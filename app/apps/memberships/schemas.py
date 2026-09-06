@@ -6,11 +6,6 @@ from pydantic import BaseModel, EmailStr
 from app.apps.memberships.models import OrgRole
 
 
-class MembershipInvite(BaseModel):
-    email: EmailStr
-    role: OrgRole = OrgRole.MEMBER
-
-
 class MembershipRoleUpdate(BaseModel):
     role: OrgRole
 

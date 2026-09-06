@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.apps.memberships.models import ROLE_RANK, Membership, OrgRole
-from app.apps.users.models import User
 
 
 async def _get_membership_with_user(db: AsyncSession, membership_id: uuid.UUID) -> Membership | None:
@@ -51,37 +50,6 @@ async def list_memberships(db: AsyncSession, organization_id: uuid.UUID) -> list
         .options(selectinload(Membership.user))
     )
     return list(result)
-
-
-async def invite_member(
-    db: AsyncSession,
-    organization_id: uuid.UUID,
-    inviter: Membership,
-    email: str,
-    role: OrgRole,
-) -> Membership:
-    if ROLE_RANK[role] > ROLE_RANK[inviter.role]:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Cannot grant a role higher than your own")
-
-    user = await db.scalar(select(User).where(User.email == email))
-    if user is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "No account exists for that email yet — they need to register before being invited",
-        )
-
-    existing = await db.scalar(
-        select(Membership).where(
-            Membership.organization_id == organization_id, Membership.user_id == user.id
-        )
-    )
-    if existing is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "User is already a member of this organization")
-
-    membership = Membership(user_id=user.id, organization_id=organization_id, role=role)
-    db.add(membership)
-    await db.commit()
-    return await _get_membership_with_user(db, membership.id)
 
 
 async def update_member_role(
